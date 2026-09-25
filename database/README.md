@@ -1,7 +1,7 @@
-# Booking database
+# Booking demo database
 
-`schema.sql` defines the future synchronized booking database. It is not connected to the public static website yet.
+`availability.json` is the read-only mock availability source consumed by booking.js. Each date lists open start times in America/Chicago. Four available times = green, three = yellow, two = gold, one = orange, zero = red. Past dates and elapsed times cannot be booked. The finite mock dataset ends March 3, 2028; later dates are unavailable until extended.
 
-GitHub Pages can serve the website but cannot safely receive, authenticate, store, or synchronize appointment records. The live site currently uses a browser-local prototype. A production booking system requires a private backend such as Cloudflare D1/Worker, Supabase, or a dedicated booking provider, plus protected staff access and email notifications.
+`bookings.json` is an empty portable database template. The working demo saves reservations in browser localStorage (`solefulBookingsV1`). Export database JSON downloads this same structure containing the device’s reservations. The public repository file is never modified by visitors. Reservations can be cancelled; their slot becomes available again locally. Tabs on the same origin receive storage updates. This is not cross-device synchronization or a production appointment service.
 
-Never commit real guest names, emails, phone numbers, appointment records, passwords, API keys, or database credentials to this repository.
+Never commit actual customer data or credentials to this public repository. Production use requires a private server/database, authentication, transactional slot locking, abuse prevention and notification delivery. `schema.sql` is a starter schema only; it is not connected to this demo.
