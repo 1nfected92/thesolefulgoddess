@@ -1,7 +1,11 @@
-# Booking demo database
+# Live booking database
 
-`availability.json` is the read-only mock availability source consumed by booking.js. Each date lists open start times in America/Chicago. Four available times = green, three = yellow, two = gold, one = orange, zero = red. Past dates and elapsed times cannot be booked. The finite mock dataset ends March 3, 2028; later dates are unavailable until extended.
+Supabase project: `the-soleful-goddess`.
 
-`bookings.json` is an empty portable database template. The working demo saves reservations in browser localStorage (`solefulBookingsV1`). Export database JSON downloads this same structure containing the device’s reservations. The public repository file is never modified by visitors. Reservations can be cancelled; their slot becomes available again locally. Tabs on the same origin receive storage updates. This is not cross-device synchronization or a production appointment service.
+The public site reads active services and open appointment slots from Supabase. The `appointments` table is protected by Row Level Security: visitors cannot list or directly insert appointment records. Public requests go through the validated `create_appointment` database function, which uses a unique partial index to prevent two requests from taking the same slot.
 
-Never commit actual customer data or credentials to this public repository. Production use requires a private server/database, authentication, transactional slot locking, abuse prevention and notification delivery. `schema.sql` is a starter schema only; it is not connected to this demo.
+The `available_slots` function generates current openings for the spa's stated daily hours, 12 PM–9 PM, using the four configured start times. It excludes requested and confirmed appointments. There are no seeded appointments, mock availability files, or browser-local booking records.
+
+The chatbot is served by the `soleful-assistant` Supabase Edge Function. It is restricted to spa information and can query live services, availability, and create appointment requests after collecting the required details. Add an `OPENAI_API_KEY` secret in Supabase Edge Function secrets to enable the conversational AI provider. Without that secret, the function returns a setup message and the calendar remains fully functional.
+
+Never place service-role keys, database passwords, AI keys, or customer records in this public GitHub repository.

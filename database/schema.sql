@@ -1,40 +1,34 @@
--- The Soleful Goddess booking database schema.
--- This schema is prepared for a secure backend. Do not store real bookings
--- in this public repository or expose database credentials in browser code.
+-- Live schema for The Soleful Goddess. Applied to Supabase project aqxuzjnlfjfcvjdlrheu.
+-- This file documents the deployed database; it contains no customer records or mock availability.
 
-CREATE TABLE IF NOT EXISTS services (
-  id INTEGER PRIMARY KEY,
-  name TEXT NOT NULL UNIQUE,
-  description TEXT NOT NULL,
-  price_cents INTEGER NOT NULL CHECK (price_cents >= 0),
-  duration_minutes INTEGER NOT NULL CHECK (duration_minutes > 0),
-  active INTEGER NOT NULL DEFAULT 1
+create extension if not exists pgcrypto;
+
+create table if not exists public.services (
+  id uuid primary key default gen_random_uuid(), name text not null unique,
+  description text not null, price_cents integer, duration_minutes integer,
+  active boolean not null default true, bookable boolean not null default false,
+  created_at timestamptz not null default now()
 );
 
-CREATE TABLE IF NOT EXISTS appointments (
-  id INTEGER PRIMARY KEY,
-  service_id INTEGER NOT NULL REFERENCES services(id),
-  guest_name TEXT NOT NULL,
-  guest_email TEXT NOT NULL,
-  guest_phone TEXT,
-  appointment_date TEXT NOT NULL,
-  appointment_time TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'requested'
-    CHECK (status IN ('requested','confirmed','cancelled','completed','no_show')),
-  notes TEXT,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+create table if not exists public.appointments (
+  id uuid primary key default gen_random_uuid(), service_id uuid not null references public.services(id),
+  guest_name text not null, guest_email text not null, guest_phone text,
+  appointment_date date not null, appointment_time time not null,
+  status text not null default 'requested' check (status in ('requested','confirmed','cancelled','completed','no_show')),
+  notes text, created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS one_active_appointment_per_slot
-ON appointments(appointment_date, appointment_time)
-WHERE status IN ('requested','confirmed');
+create unique index if not exists one_active_appointment_per_slot
+on public.appointments(appointment_date, appointment_time)
+where status in ('requested','confirmed');
 
-CREATE INDEX IF NOT EXISTS appointments_by_date
-ON appointments(appointment_date, status);
+alter table public.services enable row level security;
+alter table public.appointments enable row level security;
 
-INSERT OR IGNORE INTO services(id,name,description,price_cents,duration_minutes) VALUES
-(1,'Reflexology','A focused foot treatment using pressure-point techniques to support circulation, relaxation, and whole-body balance.',8000,60),
-(2,'Thai Massage','An energizing blend of assisted stretching, rhythmic compression, and mindful movement to open the body and calm the mind.',10000,60),
-(3,'Sports Massage','Targeted therapeutic work for active bodies, helping address areas of tightness and support mobility before or after movement.',13000,60),
-(4,'Full Body Massage','A flowing full-body session created to ease everyday tension, quiet the nervous system, and restore a sense of ease.',15000,90);
+-- Public service reads are allowed. Appointment rows are private.
+create policy "Public can read active services" on public.services for select to anon, authenticated using (active = true);
+create policy "No public appointment reads" on public.appointments for select to anon, authenticated using (false);
+create policy "No direct public appointment writes" on public.appointments for insert to anon, authenticated with check (false);
+
+-- The deployed available_slots and create_appointment functions are the public booking API.
+-- They validate service status, date range, approved start times, and duplicate slots.
