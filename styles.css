@@ -312,3 +312,5 @@ input::placeholder,textarea::placeholder { color:var(--muted); opacity:1; }
 @media(prefers-reduced-motion:no-preference){.review-card.reveal.visible{animation:spa-reveal .6s ease both,spa-float 7s .6s ease-in-out infinite}.review-card:nth-child(2n){animation-delay:.1s,1.2s}.review-card:nth-child(3n){animation-delay:.2s,2s}.slots{animation:spa-reveal .25s ease}}
 @media(max-width:850px){.nav-links.wrap{width:100%}}
 @media(max-width:520px){.service-grid{grid-template-columns:1fr}.card h3{margin-top:12px}.card p{margin-bottom:16px}.card-bottom strong{font-size:26px}}
+.empty-reviews{max-width:720px;margin:0 auto;padding:52px 34px;text-align:center;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow)}
+.empty-reviews h2{font:600 clamp(28px,4vw,44px)/1.1 var(--serif);margin:0 0 14px}.empty-reviews p:last-child{color:var(--muted)}
