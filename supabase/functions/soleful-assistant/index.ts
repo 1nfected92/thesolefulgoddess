@@ -31,12 +31,15 @@ function textOf(messages: Array<{ role?: string; content?: string }>) {
 }
 
 function centralToday() {
-  return new Intl.DateTimeFormat("en-CA", {
+  const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Chicago",
     year: "numeric",
     month: "2-digit",
     day: "2-digit"
-  }).format(new Date());
+  }).formatToParts(new Date());
+  const values: Record<string, string> = {};
+  for (const part of parts) if (part.type !== "literal") values[part.type] = part.value;
+  return values.year + "-" + values.month + "-" + values.day;
 }
 
 function addDays(dateText: string, days: number) {
@@ -96,9 +99,9 @@ function serviceName(value: string) {
 }
 
 function isOffTopic(value: string) {
-  const unrelated = /\b(weather|forecast|sports|news|politics|recipe|movie|music|anime|crypto|stock|stocks|joke)\b/.test(value);
-  const spaWords = ["massage", "spa", "reflex", "thai", "sport", "body", "book", "appointment", "available", "slot", "price", "cost", "hour", "location", "address", "carrollton", "relax", "contact", "prepare", "policy", "cancel", "reschedule", "name", "email", "date", "time", "today", "tomorrow"];
-  return unrelated || (value.length > 2 && !spaWords.some((word) => value.includes(word)) && !/^(hi|hello|hey|thanks|thank you|help)\b/.test(value));
+  const unrelated = /\b(weather|forecast|news|politics|recipe|movie|music|anime|crypto|stock|stocks|joke)\b/.test(value);
+  const spaContext = /\b(massage|spa|reflex|thai|sport|sports|body|book|appointment|available|availability|opening|openings|slot|price|cost|hour|open|location|address|located|carrollton|relax|contact|prepare|preparation|policy|cancel|reschedule|name|email|date|time|today|tomorrow|feet|foot|tired|stress|tension|muscle|recovery|wear|before|where|direction|recommend|what|which|treatment|service|how much|duration|minutes)\b/.test(value);
+  return unrelated || (value.length > 2 && !spaContext && !/^(hi|hello|hey|thanks|thank you|help)\b/.test(value));
 }
 
 async function services() {
@@ -158,7 +161,9 @@ function serviceDetails(name: string, list: Array<{ name: string; description?: 
     "Sports Massage": "targeted bodywork for active bodies, muscle recovery, and areas of tension",
     "Full Body Massage": "a customized full-body session focused on relaxation and the areas that need attention most"
   };
-  return service.name + " is " + price + " for " + duration + ". " + (descriptions[service.name] || service.description || "It can be tailored to your goals.") + (service.bookable ? "." : " Please call " + spa.phone + " to schedule this service.");
+  const costLine = service.price_cents == null ? "Pricing and duration are available by phone." : "It is " + price + " for " + duration + ".";
+  const detail = descriptions[service.name] || service.description || "It can be tailored to your goals";
+  return service.name + " — " + costLine + " " + detail + (service.bookable ? "." : ". Please call " + spa.phone + " to schedule this service.");
 }
 
 async function handle(messages: Array<{ role?: string; content?: string }>) {
@@ -168,7 +173,8 @@ async function handle(messages: Array<{ role?: string; content?: string }>) {
   const date = parseDate(all);
   const selectedService = serviceName(all);
   const list = await services();
-  const bookingIntent = /\b(book|booking|appointment|reserve|reservation|schedule)\b/.test(all) ||
+  const bookingIntent = /\b(book|booking|reserve|reservation|schedule)\b/.test(all) ||
+    /\b(make|set up|request|arrange)\b.*\bappointment\b/.test(all) ||
     /\b(need|want|looking for)\b.*\b(massage|appointment|session)\b/.test(all) ||
     (date && parseTime(all));
 
@@ -182,7 +188,10 @@ async function handle(messages: Array<{ role?: string; content?: string }>) {
     return "I’m here specifically for The Soleful Goddess. I can help with our massages, pricing, preparation, location, availability, and appointment requests.";
   }
 
-  if (/\b(which|what|recommend|best|right)\b/.test(latest) && /\b(massage|treatment|service)\b/.test(latest)) {
+  if (/\b(which|what|recommend|best|right|suggest)\b/.test(latest) && /\b(massage|treatment|service|feet|foot|tired|active|workout|stress|tight|muscle)\b/.test(latest)) {
+    if (selectedService && /\b(what|tell|describe|about|includes|price|cost|duration|long|good)\b/.test(latest)) {
+      return serviceDetails(selectedService, list) || "I can explain each treatment and help you choose one.";
+    }
     if (/\b(feet|foot|reflex|circulation)\b/.test(latest)) {
       return "If your feet feel tired or you want focused pressure-point work, Reflexology is the best fit. It is $80 for 60 minutes.";
     }
@@ -215,7 +224,7 @@ async function handle(messages: Array<{ role?: string; content?: string }>) {
     return serviceDetails(selectedService, list) || "I can explain each treatment and help you choose one.";
   }
 
-  const wantsAvailability = /\b(available|availability|open slot|slots|calendar|free time)\b/.test(latest);
+  const wantsAvailability = /\b(available|availability|opening|openings|open slot|slots|calendar|free time)\b/.test(latest);
   if (wantsAvailability && date) {
     const found = await slots(date, date);
     if (!found.length) return "I checked the live calendar, and there are no open slots on " + date + ". Another date may work better.";
