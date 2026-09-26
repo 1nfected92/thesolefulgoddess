@@ -4,6 +4,12 @@
   const $ = id => document.getElementById(id);
   const headers = { apikey: cfg.publishableKey, Authorization: `Bearer ${cfg.publishableKey}`, 'Content-Type': 'application/json' };
   let services = [], slots = [], month, selected = '', time = '';
+  const fallbackServices = [
+    {id:'702525d0-bc94-4dfe-9a01-5eb91d2683dd',name:'Full Body Massage',description:'A flowing full-body session to ease everyday tension and restore calm.',price_cents:null,duration_minutes:null,bookable:false,active:true},
+    {id:'3fb48b73-7a23-4614-931a-53a2714e62b4',name:'Reflexology',description:'A focused foot treatment using pressure-point techniques to support circulation, relaxation, and whole-body balance.',price_cents:8000,duration_minutes:60,bookable:true,active:true},
+    {id:'8d742eee-2027-4416-a668-1087c0f244f9',name:'Sports Massage',description:'Targeted therapeutic work for active bodies and improved mobility.',price_cents:null,duration_minutes:null,bookable:false,active:true},
+    {id:'4c3d3977-a8a8-4cb4-9b27-f4aace30582c',name:'Thai Massage',description:'An energizing blend of assisted stretching, rhythmic compression, and mindful movement.',price_cents:10000,duration_minutes:60,bookable:true,active:true}
+  ];
   const today = () => { const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/Chicago',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()); const v={}; parts.forEach(p=>{if(p.type!=='literal')v[p.type]=p.value}); return `${v.year}-${v.month}-${v.day}`; };
   const labelDate = d => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US',{timeZone:'UTC',weekday:'long',month:'long',day:'numeric',year:'numeric'});
   const labelTime = t => { const [h,m] = t.slice(0,5).split(':'); return `${(+h%12)||12}:${m} ${+h>=12?'PM':'AM'}`; };
@@ -31,7 +37,8 @@
   }
   function loadMonth(){ draw(); }
   try {
-    services=await get('/rest/v1/services?active=eq.true&select=id,name,description,price_cents,duration_minutes,bookable,active&order=name');
+    try { services=await get('/rest/v1/services?active=eq.true&select=id,name,description,price_cents,duration_minutes,bookable,active&order=name'); } catch { services=[]; }
+    if(!Array.isArray(services)||!services.length)services=fallbackServices;
     fillServices();
     const start=today(), end=new Date(`${start}T12:00:00Z`); end.setUTCDate(end.getUTCDate()+90);
     slots=await post('/rest/v1/rpc/available_slots',{p_start:start,p_end:end.toISOString().slice(0,10)});
