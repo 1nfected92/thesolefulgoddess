@@ -313,7 +313,12 @@ async function handle(messages: Array<{ role?: string; content?: string }>) {
     if (!time) {
       const changedDate = parseDate(latest);
       const dateLabel = /\btoday\b/.test(latest) ? "today" : /\btomorrow\b/.test(latest) ? "tomorrow" : date;
-      return changedDate ? "Got it — I’ll use " + dateLabel + " for your " + service.name + ". What time would you prefer? Our standard appointment times are 12 PM, 2 PM, 4:30 PM, and 7 PM." : "I found the date. What time would you prefer? Our standard appointment times are 12 PM, 2 PM, 4:30 PM, and 7 PM.";
+      const liveOpenings = await slots(date, date);
+      if (!liveOpenings.length) {
+        return changedDate ? "Got it — I’ll use " + dateLabel + " for your " + service.name + ", but there are no remaining openings on that date. Which other date would work?" : "There are no remaining openings on " + date + ". Which other date would work?";
+      }
+      const openingText = liveOpenings.map(slotLabel).join("\n");
+      return changedDate ? "Got it — I’ll use " + dateLabel + " for your " + service.name + ". The live openings are:\n" + openingText + "\nWhich time would you prefer?" : "The live openings for " + date + " are:\n" + openingText + "\nWhich time would you prefer?";
     }
     if (!name) return "That time can be checked for you. What name should I put on the appointment request?";
     if (!email) return "Thanks, " + name + ". What email should the spa use for confirmation?";
