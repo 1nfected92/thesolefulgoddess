@@ -6,6 +6,6 @@ The public site reads active services and open appointment slots from Supabase. 
 
 The `available_slots` function generates current openings for the spa's stated daily hours, 12 PM–9 PM, using the four configured start times. It excludes requested and confirmed appointments. There are no seeded appointments, mock availability files, or browser-local booking records.
 
-The chatbot is served by the `soleful-assistant` Supabase Edge Function. It is restricted to spa information and can query live services, availability, and create appointment requests after collecting the required details. Add an `OPENAI_API_KEY` secret in Supabase Edge Function secrets to enable the conversational AI provider. Without that secret, the function returns a setup message and the calendar remains fully functional.
+The `soleful-assistant` Supabase Edge Function is a deterministic, spa-only assistant. It answers predefined questions about services, prices, hours, location, preparation, and policies; reads live availability from Supabase; and submits appointment requests through the validated database function. It has no OpenAI API dependency, no AI secret, and no external provider dependency.
 
-Never place service-role keys, database passwords, AI keys, or customer records in this public GitHub repository.
+Never place service-role keys, database passwords, or customer records in this public GitHub repository.
