@@ -150,6 +150,43 @@ function conversational(text: string, messages: Array<{ role?: string; content?:
   return text;
 }
 
+function conversationName(messages: Array<{ role?: string; content?: string }>) {
+  let found: string | null = null;
+  for (let i = 0; i < messages.length; i++) {
+    const message = messages[i];
+    if (message.role !== "user") continue;
+    const value = (message.content || "").trim();
+    const explicit = parseName(value);
+    if (explicit) found = explicit;
+    const previous = (messages[i - 1]?.content || "").toLowerCase();
+    const bare = /^[A-Za-z][A-Za-z .'-]{1,60}$/.test(value) ? value : null;
+    if (messages[i - 1]?.role === "assistant" && /\b(what name|name should|full name)\b/.test(previous) && bare && !parseEmail(value)) {
+      found = bare;
+    }
+  }
+  return found;
+}
+
+function conversationEmail(messages: Array<{ role?: string; content?: string }>) {
+  for (const message of messages) {
+    if (message.role === "user") {
+      const email = parseEmail(message.content || "");
+      if (email) return email;
+    }
+  }
+  return null;
+}
+
+function conversationPhone(messages: Array<{ role?: string; content?: string }>) {
+  for (const message of messages) {
+    if (message.role === "user") {
+      const phone = parsePhone(message.content || "");
+      if (phone) return phone;
+    }
+  }
+  return null;
+}
+
 function serviceDetails(name: string, list: Array<{ name: string; description?: string; price_cents?: number | null; duration_minutes?: number | null; bookable?: boolean }>) {
   const service = list.find((item) => item.name === name);
   if (!service) return null;
@@ -237,9 +274,9 @@ async function handle(messages: Array<{ role?: string; content?: string }>) {
   if (bookingIntent) {
     const service = list.find((s) => s.name === selectedService);
     const bareName = /^[A-Za-z][A-Za-z .'-]{1,60}$/.test(latestRaw.trim()) ? latestRaw.trim() : null;
-    const name = parseName(all) || (/\bwhat name\b|\bname should\b/.test(previousAssistant) ? bareName : null);
-    const email = parseEmail(all);
-    const phone = parsePhone(all);
+    const name = conversationName(messages) || (/\bwhat name\b|\bname should\b/.test(previousAssistant) ? bareName : null);
+    const email = conversationEmail(messages);
+    const phone = conversationPhone(messages);
     const time = parseTime(all);
 
     if (!service) {
