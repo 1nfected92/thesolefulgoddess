@@ -4,13 +4,13 @@
   const $ = id => document.getElementById(id);
   const headers = { apikey: cfg.publishableKey, Authorization: `Bearer ${cfg.publishableKey}`, 'Content-Type': 'application/json' };
   let services = [], slots = [], month, selected = '', time = '';
-  const today = () => new Intl.DateTimeFormat('en-CA',{timeZone:'America/Chicago',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  const today = () => { const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/Chicago',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()); const v={}; parts.forEach(p=>{if(p.type!=='literal')v[p.type]=p.value}); return `${v.year}-${v.month}-${v.day}`; };
   const labelDate = d => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US',{timeZone:'UTC',weekday:'long',month:'long',day:'numeric',year:'numeric'});
   const labelTime = t => { const [h,m] = t.slice(0,5).split(':'); return `${(+h%12)||12}:${m} ${+h>=12?'PM':'AM'}`; };
   const get = async path => { const r=await fetch(`${cfg.url}${path}`,{headers}); if(!r.ok) throw Error(await r.text()); return r.json(); };
   const post = async (path,body) => { const r=await fetch(`${cfg.url}${path}`,{method:'POST',headers,body:JSON.stringify(body)}); if(!r.ok) throw Error(await r.text()); return r.json(); };
   const node = (tag,text,cls) => { const n=document.createElement(tag); if(text)n.textContent=text; if(cls)n.className=cls; return n; };
-  function fillServices(){ const select=$('service'); select.replaceChildren(); services.filter(s=>s.active).forEach(s=>{ const o=node('option');o.value=s.id;o.textContent=`${s.name}${s.price_cents==null?'':` — $${s.price_cents/100} / ${s.duration_minutes} min`}`;o.dataset.name=s.name;select.append(o); }); const wanted=new URLSearchParams(location.search).get('service'); const match=services.find(s=>s.name===wanted); if(match)select.value=match.id; }
+  function fillServices(){ const select=$('service'); select.replaceChildren(); services.filter(s=>s.active!==false).forEach(s=>{ const o=node('option');o.value=s.id;o.textContent=`${s.name}${s.price_cents==null?'':` — $${s.price_cents/100} / ${s.duration_minutes} min`}`;o.dataset.name=s.name;select.append(o); }); const wanted=new URLSearchParams(location.search).get('service'); const match=services.find(s=>s.name===wanted); if(match)select.value=match.id; }
   function available(d){ return slots.filter(s=>s.appointment_date===d); }
   function draw(){
     $('calendarMonth').textContent=month.toLocaleDateString('en-US',{month:'long',year:'numeric',timeZone:'UTC'});
@@ -31,7 +31,7 @@
   }
   function loadMonth(){ draw(); }
   try {
-    services=await get('/rest/v1/services?active=eq.true&select=id,name,description,price_cents,duration_minutes,bookable&order=name');
+    services=await get('/rest/v1/services?active=eq.true&select=id,name,description,price_cents,duration_minutes,bookable,active&order=name');
     fillServices();
     const start=today(), end=new Date(`${start}T12:00:00Z`); end.setUTCDate(end.getUTCDate()+90);
     slots=await post('/rest/v1/rpc/available_slots',{p_start:start,p_end:end.toISOString().slice(0,10)});
