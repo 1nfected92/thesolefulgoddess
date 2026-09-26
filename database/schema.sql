@@ -31,4 +31,6 @@ create policy "No public appointment reads" on public.appointments for select to
 create policy "No direct public appointment writes" on public.appointments for insert to anon, authenticated with check (false);
 
 -- The deployed available_slots and create_appointment functions are the public booking API.
--- They validate service status, date range, approved start times, and duplicate slots.
+-- They validate service status, date range, approved start times, duplicate slots,
+-- and the current Dallas time. For today, slots earlier than the current time are
+-- omitted; requested and confirmed slots are omitted on every date.
