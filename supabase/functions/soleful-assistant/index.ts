@@ -91,10 +91,11 @@ function parseName(value: string) {
 }
 
 function serviceName(value: string) {
-  if (value.includes("reflex")) return "Reflexology";
-  if (value.includes("thai")) return "Thai Massage";
-  if (value.includes("sport")) return "Sports Massage";
-  if (value.includes("full body") || value.includes("full-body")) return "Full Body Massage";
+  const lower = value.toLowerCase();
+  if (lower.includes("reflex")) return "Reflexology";
+  if (lower.includes("thai")) return "Thai Massage";
+  if (lower.includes("sport")) return "Sports Massage";
+  if (lower.includes("full body") || lower.includes("full-body")) return "Full Body Massage";
   return null;
 }
 
@@ -187,6 +188,31 @@ function conversationPhone(messages: Array<{ role?: string; content?: string }>)
   return null;
 }
 
+function clientMessages(messages: Array<{ role?: string; content?: string }>) {
+  return messages.filter((message) => message.role === "user");
+}
+
+function latestClientValue<T>(messages: Array<{ role?: string; content?: string }>, parser: (value: string) => T | null) {
+  let found: T | null = null;
+  for (const message of clientMessages(messages)) {
+    const parsed = parser(message.content || "");
+    if (parsed) found = parsed;
+  }
+  return found;
+}
+
+function conversationDate(messages: Array<{ role?: string; content?: string }>) {
+  return latestClientValue(messages, parseDate);
+}
+
+function conversationTime(messages: Array<{ role?: string; content?: string }>) {
+  return latestClientValue(messages, parseTime);
+}
+
+function conversationService(messages: Array<{ role?: string; content?: string }>) {
+  return latestClientValue(messages, serviceName);
+}
+
 function serviceDetails(name: string, list: Array<{ name: string; description?: string; price_cents?: number | null; duration_minutes?: number | null; bookable?: boolean }>) {
   const service = list.find((item) => item.name === name);
   if (!service) return null;
@@ -207,13 +233,14 @@ async function handle(messages: Array<{ role?: string; content?: string }>) {
   const all = textOf(messages);
   const latestRaw = messages.filter((m) => m.role === "user").at(-1)?.content || "";
   const latest = latestRaw.toLowerCase();
-  const date = parseDate(all);
-  const selectedService = serviceName(all);
+  const clientText = textOf(clientMessages(messages));
+  const date = conversationDate(messages);
+  const selectedService = conversationService(messages);
   const list = await services();
-  const bookingIntent = /\b(book|booking|reserve|reservation|schedule)\b/.test(all) ||
-    /\b(make|set up|request|arrange)\b.*\bappointment\b/.test(all) ||
-    /\b(need|want|looking for)\b.*\b(massage|appointment|session)\b/.test(all) ||
-    (date && parseTime(all));
+  const bookingIntent = /\b(book|booking|reserve|reservation|schedule)\b/.test(clientText) ||
+    /\b(make|set up|request|arrange)\b.*\bappointment\b/.test(clientText) ||
+    /\b(need|want|looking for)\b.*\b(massage|appointment|session)\b/.test(clientText) ||
+    (date && conversationTime(messages));
 
   if (/^(hi|hello|hey|good morning|good afternoon|good evening)\b/.test(latest)) {
     const greeting = latest.includes("morning") ? "Good morning" : latest.includes("afternoon") ? "Good afternoon" : latest.includes("evening") ? "Good evening" : "Hi";
@@ -277,13 +304,17 @@ async function handle(messages: Array<{ role?: string; content?: string }>) {
     const name = conversationName(messages) || (/\bwhat name\b|\bname should\b/.test(previousAssistant) ? bareName : null);
     const email = conversationEmail(messages);
     const phone = conversationPhone(messages);
-    const time = parseTime(all);
+    const time = conversationTime(messages);
 
     if (!service) {
       return "I can help arrange that. Which treatment would you like: Thai Massage, Reflexology, Sports Massage, or Full Body Massage?";
     }
     if (!date) return service.name + " is a good choice. What date would you like to visit?";
-    if (!time) return "I found the date. What time would you prefer? Our standard appointment times are 12 PM, 2 PM, 4:30 PM, and 7 PM.";
+    if (!time) {
+      const changedDate = parseDate(latest);
+      const dateLabel = /\btoday\b/.test(latest) ? "today" : /\btomorrow\b/.test(latest) ? "tomorrow" : date;
+      return changedDate ? "Got it — I’ll use " + dateLabel + " for your " + service.name + ". What time would you prefer? Our standard appointment times are 12 PM, 2 PM, 4:30 PM, and 7 PM." : "I found the date. What time would you prefer? Our standard appointment times are 12 PM, 2 PM, 4:30 PM, and 7 PM.";
+    }
     if (!name) return "That time can be checked for you. What name should I put on the appointment request?";
     if (!email) return "Thanks, " + name + ". What email should the spa use for confirmation?";
     if (!service.bookable) return service.name + " is scheduled by phone rather than online. Please call " + spa.phone + " and the spa can help you directly.";
