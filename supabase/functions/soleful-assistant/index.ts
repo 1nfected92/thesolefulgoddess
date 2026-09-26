@@ -101,7 +101,7 @@ function serviceName(value: string) {
 
 function isOffTopic(value: string) {
   const unrelated = /\b(weather|forecast|news|politics|recipe|movie|music|anime|crypto|stock|stocks|joke)\b/.test(value);
-  const spaContext = /\b(massage|spa|reflex|thai|sport|sports|body|book|appointment|available|availability|opening|openings|slot|price|cost|hour|open|location|address|located|carrollton|relax|contact|prepare|preparation|policy|cancel|reschedule|name|email|date|time|today|tomorrow|feet|foot|tired|stress|tension|muscle|recovery|wear|before|where|direction|recommend|what|which|treatment|service|how much|duration|minutes)\b/.test(value);
+  const spaContext = /\b(massage|spa|reflexology|reflex|thai|sport|sports|body|book|appointment|available|availability|opening|openings|slot|price|cost|hour|open|location|address|located|carrollton|relax|contact|prepare|preparation|policy|cancel|reschedule|name|email|date|time|today|tomorrow|feet|foot|tired|stress|tension|muscle|recovery|wear|before|where|direction|recommend|what|which|treatment|service|how much|duration|minutes)\b/.test(value);
   return unrelated || (value.length > 2 && !spaContext && !/^(hi|hello|hey|thanks|thank you|help)\b/.test(value));
 }
 
@@ -117,6 +117,13 @@ async function slots(start: string, end: string) {
   const { data, error } = await supabase.rpc("available_slots", { p_start: start, p_end: end });
   if (error) throw error;
   return data || [];
+}
+
+async function soonestOpening(fromDate: string) {
+  const future = await slots(fromDate, addDays(fromDate, 180));
+  return future
+    .slice()
+    .sort((a, b) => (a.appointment_date + a.appointment_time).localeCompare(b.appointment_date + b.appointment_time))[0] || null;
 }
 
 function slotLabel(item: { appointment_date: string; appointment_time: string; remaining?: number }) {
@@ -274,6 +281,10 @@ async function handle(messages: Array<{ role?: string; content?: string }>) {
   }
 
   if (bookingActive) {
+    if (bookingIntent && !selectedService && /\b(need|want|book|reserve|schedule|appointment)\b/.test(latest)) {
+      return "Which treatment would you like: Thai Massage, Reflexology, Sports Massage, or Full Body Massage?";
+    }
+
     const asksAboutService = Boolean(latestService && /\b(what|tell|describe|about|includes|price|cost|duration|long|good)\b/.test(latest));
     const asksAboutAvailability = /\b(available|availability|opening|openings|open slot|slots|calendar|free time)\b/.test(latest);
     if (asksAboutService) {
@@ -282,10 +293,13 @@ async function handle(messages: Array<{ role?: string; content?: string }>) {
     if (asksAboutAvailability) {
       if (!date) return answerWithResume("Tell me the date you would like me to check, such as today, tomorrow, or a specific date.", state);
       const found = await slots(date, date);
-      const answer = found.length
-        ? "I checked the live calendar for " + date + ". The openings are:\n" + found.map(slotLabel).join("\n")
-        : "I checked the live calendar, and there are no open slots on " + date + ".";
-      return answerWithResume(answer, state);
+      if (found.length) {
+        return answerWithResume("The openings on " + date + " are:\n" + found.map(slotLabel).join("\n"), state);
+      }
+      const soonest = await soonestOpening(addDays(date, 1));
+      return soonest
+        ? "There are no openings on " + date + ". The soonest available slot is " + slotLabel(soonest) + "."
+        : "There are no openings on " + date + " or within the next six months.";
     }
     if (/\b(hours?|open|close|when)\b/.test(latest)) {
       return answerWithResume("We are open every day from 12 PM to 9 PM.", state);
@@ -379,13 +393,18 @@ async function handle(messages: Array<{ role?: string; content?: string }>) {
       if (!bookingEmail) return "I’ve updated the request to " + date + ". The selected time is still open. What email should the spa use for confirmation?";
     }
     if (!time) {
-      const dateLabel = /\btoday\b/.test(latest) ? "today" : /\btomorrow\b/.test(latest) ? "tomorrow" : date;
+      const dateLabel = /\\btoday\\b/.test(latest) ? "today" : /\\btomorrow\\b/.test(latest) ? "tomorrow" : date;
       const liveOpenings = await slots(date, date);
       if (!liveOpenings.length) {
-        return changedDate ? "Got it — I’ll use " + dateLabel + " for your " + service.name + ", but there are no remaining openings on that date. Which other date would work?" : "There are no remaining openings on " + date + ". Which other date would work?";
+        const soonest = await soonestOpening(addDays(date, 1));
+        return soonest
+          ? "There are no openings on " + dateLabel + ". The soonest available slot is " + slotLabel(soonest) + "."
+          : "There are no openings on " + dateLabel + " or within the next six months.";
       }
       const openingText = liveOpenings.map(slotLabel).join("\n");
-      return changedDate ? "Got it — I’ll use " + dateLabel + " for your " + service.name + ". The live openings are:\n" + openingText + "\nWhich time would you prefer?" : "The live openings for " + date + " are:\n" + openingText + "\nWhich time would you prefer?";
+      return changedDate
+        ? "Got it — I’ll use " + dateLabel + " for your " + service.name + ". The live openings are:\n" + openingText + "\nWhich time would you prefer?"
+        : "The live openings for " + date + " are:\n" + openingText + "\nWhich time would you prefer?";
     }
     if (!bookingName) return "That time can be checked for you. What name should I put on the appointment request?";
     if (!bookingEmail) return "Thanks, " + name + ". What email should the spa use for confirmation?";
