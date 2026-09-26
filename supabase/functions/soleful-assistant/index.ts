@@ -156,10 +156,10 @@ function serviceDetails(name: string, list: Array<{ name: string; description?: 
   const price = service.price_cents == null ? "pricing is available by phone" : "$" + (service.price_cents / 100).toFixed(0);
   const duration = service.duration_minutes == null ? "duration is discussed when you call" : service.duration_minutes + " minutes";
   const descriptions: Record<string, string> = {
-    "Thai Massage": "assisted stretching, rhythmic compression, and mindful movement for a deeply restorative session",
-    "Reflexology": "focused pressure-point work on the feet to support relaxation, circulation, and whole-body balance",
-    "Sports Massage": "targeted bodywork for active bodies, muscle recovery, and areas of tension",
-    "Full Body Massage": "a customized full-body session focused on relaxation and the areas that need attention most"
+    "Thai Massage": "Assisted stretching, rhythmic compression, and mindful movement for a deeply restorative session",
+    "Reflexology": "Focused pressure-point work on the feet to support relaxation, circulation, and whole-body balance",
+    "Sports Massage": "Targeted bodywork for active bodies, muscle recovery, and areas of tension",
+    "Full Body Massage": "A customized full-body session focused on relaxation and the areas that need attention most"
   };
   const costLine = service.price_cents == null ? "Pricing and duration are available by phone." : "It is " + price + " for " + duration + ".";
   const detail = descriptions[service.name] || service.description || "It can be tailored to your goals";
