@@ -213,6 +213,21 @@ function conversationService(messages: Array<{ role?: string; content?: string }
   return latestClientValue(messages, serviceName);
 }
 
+function bookingResume(state: { active: boolean; service: string | null; date: string | null; time: string | null; name: string | null; email: string | null }) {
+  if (!state.active) return "";
+  if (!state.service) return "To continue your appointment request, I still need the treatment you would like.";
+  if (!state.date) return "To continue your appointment request, I still need your preferred date.";
+  if (!state.time) return "To continue your appointment request, I still need your preferred time.";
+  if (!state.name) return "To continue your appointment request, I still need the name for the appointment.";
+  if (!state.email) return "To continue your appointment request, I still need an email for confirmation.";
+  return "";
+}
+
+function answerWithResume(answer: string, state: { active: boolean; service: string | null; date: string | null; time: string | null; name: string | null; email: string | null }) {
+  const next = bookingResume(state);
+  return next ? answer + "\n\n" + next : answer;
+}
+
 function serviceDetails(name: string, list: Array<{ name: string; description?: string; price_cents?: number | null; duration_minutes?: number | null; bookable?: boolean }>) {
   const service = list.find((item) => item.name === name);
   if (!service) return null;
@@ -236,20 +251,61 @@ async function handle(messages: Array<{ role?: string; content?: string }>) {
   const clientText = textOf(clientMessages(messages));
   const date = conversationDate(messages);
   const selectedService = conversationService(messages);
+  const latestService = serviceName(latest);
+  const time = conversationTime(messages);
+  const name = conversationName(messages);
+  const email = conversationEmail(messages);
   const list = await services();
   const bookingIntent = /\b(book|booking|reserve|reservation|schedule)\b/.test(clientText) ||
     /\b(make|set up|request|arrange)\b.*\bappointment\b/.test(clientText) ||
     /\b(need|want|looking for)\b.*\b(massage|appointment|session)\b/.test(clientText) ||
-    (date && conversationTime(messages));
+    (date && time);
+  const bookingActive = Boolean(bookingIntent || date || time || name || email || /\b(choose|treatment|appointment|booking|date|time|name|email|phone)\b/.test(recentAssistant(messages)));
+  const state = { active: bookingActive, service: selectedService, date, time, name, email };
 
   if (/^(hi|hello|hey|good morning|good afternoon|good evening)\b/.test(latest)) {
     const greeting = latest.includes("morning") ? "Good morning" : latest.includes("afternoon") ? "Good afternoon" : latest.includes("evening") ? "Good evening" : "Hi";
     return greeting + ". Welcome to The Soleful Goddess. What would feel best today: learning about a treatment, finding an opening, or starting an appointment request?";
   }
   const previousAssistant = recentAssistant(messages).toLowerCase();
-  const isConversationReply = bookingIntent || /\b(name|email|phone|date|time|treatment|massage|appointment|which)\b/.test(previousAssistant);
-  if (isOffTopic(latest) && !isConversationReply) {
-    return "I’m here specifically for The Soleful Goddess. I can help with our massages, pricing, preparation, location, availability, and appointment requests.";
+  if (isOffTopic(latest)) {
+    const redirect = "I’m here specifically for The Soleful Goddess. I can help with our massages, pricing, preparation, location, availability, and appointment requests.";
+    return answerWithResume(redirect, state);
+  }
+
+  if (bookingActive) {
+    const asksAboutService = Boolean(latestService && /\b(what|tell|describe|about|includes|price|cost|duration|long|good)\b/.test(latest));
+    const asksAboutAvailability = /\b(available|availability|opening|openings|open slot|slots|calendar|free time)\b/.test(latest);
+    if (asksAboutService) {
+      return answerWithResume(serviceDetails(latestService!, list) || "I can explain that treatment and help you choose an appointment.", state);
+    }
+    if (asksAboutAvailability) {
+      if (!date) return answerWithResume("Tell me the date you would like me to check, such as today, tomorrow, or a specific date.", state);
+      const found = await slots(date, date);
+      const answer = found.length
+        ? "I checked the live calendar for " + date + ". The openings are:\n" + found.map(slotLabel).join("\n")
+        : "I checked the live calendar, and there are no open slots on " + date + ".";
+      return answerWithResume(answer, state);
+    }
+    if (/\b(hours?|open|close|when)\b/.test(latest)) {
+      return answerWithResume("We are open every day from 12 PM to 9 PM.", state);
+    }
+    if (/\b(where|location|address|located|directions|map)\b/.test(latest)) {
+      return answerWithResume("We are at " + spa.address + ". We welcome guests 18 and older.", state);
+    }
+    if (/\b(phone|call|contact|instagram)\b/.test(latest)) {
+      return answerWithResume("You can call " + spa.phone + ", email " + spa.email + ", or visit our Instagram at " + spa.instagram + ".", state);
+    }
+    if (/\b(prepare|preparation|before|wear|what should)\b/.test(latest)) {
+      return answerWithResume("For your visit, arrive a few minutes early, wear comfortable clothing, mention any relevant health concerns before the session, and let your therapist know how the pressure feels during the massage.", state);
+    }
+    if (/\b(cancel|reschedule|policy|late|refund)\b/.test(latest)) {
+      return answerWithResume("For cancellations or rescheduling, please contact the spa directly at " + spa.phone + ". Online requests are submitted for spa confirmation.", state);
+    }
+    if (/\b(service|services|massage|price|prices|cost|costs|how much|duration|minutes)\b/.test(latest)) {
+      const lines = list.map((s) => serviceDetails(s.name, list));
+      return answerWithResume("Here is the current treatment menu:\n" + lines.join("\n"), state);
+    }
   }
 
   if (/\b(which|what|recommend|best|right|suggest)\b/.test(latest) && /\b(massage|treatment|service|feet|foot|tired|active|workout|stress|tight|muscle)\b/.test(latest)) {
@@ -301,10 +357,10 @@ async function handle(messages: Array<{ role?: string; content?: string }>) {
   if (bookingIntent) {
     const service = list.find((s) => s.name === selectedService);
     const bareName = /^[A-Za-z][A-Za-z .'-]{1,60}$/.test(latestRaw.trim()) ? latestRaw.trim() : null;
-    const name = conversationName(messages) || (/\bwhat name\b|\bname should\b/.test(previousAssistant) ? bareName : null);
-    const email = conversationEmail(messages);
+    const bookingName = name || (/\bwhat name\b|\bname should\b/.test(previousAssistant) ? bareName : null);
+    const bookingEmail = email;
     const phone = conversationPhone(messages);
-    const time = conversationTime(messages);
+    const bookingTime = time;
 
     if (!service) {
       return "I can help arrange that. Which treatment would you like: Thai Massage, Reflexology, Sports Massage, or Full Body Massage?";
@@ -313,14 +369,14 @@ async function handle(messages: Array<{ role?: string; content?: string }>) {
     const changedDate = parseDate(latest);
     if (changedDate && time) {
       const liveOpenings = await slots(date, date);
-      const timeStillOpen = liveOpenings.some((opening) => opening.appointment_time.slice(0, 5) === time);
+      const timeStillOpen = liveOpenings.some((opening) => opening.appointment_time.slice(0, 5) === bookingTime);
       if (!timeStillOpen) {
         return liveOpenings.length
           ? "I’ve updated the request to " + date + ", but the previously selected time is not available there. The live openings are:\n" + liveOpenings.map(slotLabel).join("\n") + "\nWhich time would you prefer?"
           : "I’ve updated the request to " + date + ", but there are no remaining openings on that date. Which other date would work?";
       }
-      if (!name) return "I’ve updated the request to " + date + ". The selected time is still open. What name should I put on the appointment request?";
-      if (!email) return "I’ve updated the request to " + date + ". The selected time is still open. What email should the spa use for confirmation?";
+      if (!bookingName) return "I’ve updated the request to " + date + ". The selected time is still open. What name should I put on the appointment request?";
+      if (!bookingEmail) return "I’ve updated the request to " + date + ". The selected time is still open. What email should the spa use for confirmation?";
     }
     if (!time) {
       const dateLabel = /\btoday\b/.test(latest) ? "today" : /\btomorrow\b/.test(latest) ? "tomorrow" : date;
@@ -331,16 +387,16 @@ async function handle(messages: Array<{ role?: string; content?: string }>) {
       const openingText = liveOpenings.map(slotLabel).join("\n");
       return changedDate ? "Got it — I’ll use " + dateLabel + " for your " + service.name + ". The live openings are:\n" + openingText + "\nWhich time would you prefer?" : "The live openings for " + date + " are:\n" + openingText + "\nWhich time would you prefer?";
     }
-    if (!name) return "That time can be checked for you. What name should I put on the appointment request?";
-    if (!email) return "Thanks, " + name + ". What email should the spa use for confirmation?";
+    if (!bookingName) return "That time can be checked for you. What name should I put on the appointment request?";
+    if (!bookingEmail) return "Thanks, " + name + ". What email should the spa use for confirmation?";
     if (!service.bookable) return service.name + " is scheduled by phone rather than online. Please call " + spa.phone + " and the spa can help you directly.";
 
     const open = await slots(date, date);
-    const chosen = open.find((s) => s.appointment_time.slice(0, 5) === time);
+    const chosen = open.find((s) => s.appointment_time.slice(0, 5) === bookingTime);
     if (!chosen) return "I’m sorry, that time is no longer open on " + date + ". The remaining openings are:\n" + (open.length ? open.map(slotLabel).join("\n") : "none") + "\n\nTell me another time and I’ll check it.";
     try {
-      await createBooking({ service_id: service.id, guest_name: name, guest_email: email, guest_phone: phone, appointment_date: date, appointment_time: time + ":00" });
-      return "You’re all set. I submitted a " + service.name + " request for " + date + " at " + slotLabel({ appointment_date: date, appointment_time: time + ":00" }).split(" at ")[1] + " under " + name + ". The spa will confirm the appointment using " + email + ".";
+      await createBooking({ service_id: service.id, guest_name: bookingName, guest_email: bookingEmail, guest_phone: phone, appointment_date: date, appointment_time: bookingTime + ":00" });
+      return "You’re all set. I submitted a " + service.name + " request for " + date + " at " + slotLabel({ appointment_date: date, appointment_time: bookingTime + ":00" }).split(" at ")[1] + " under " + name + ". The spa will confirm the appointment using " + email + ".";
     } catch {
       return "That opening was just taken or could not be reserved. Please choose another time from the live calendar.";
     }
