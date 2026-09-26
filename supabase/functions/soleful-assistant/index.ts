@@ -208,12 +208,29 @@ function latestClientValue<T>(messages: Array<{ role?: string; content?: string 
   return found;
 }
 
+function acceptedSuggestedSlot(messages: Array<{ role?: string; content?: string }>) {
+  const latestUser = messages.filter((message) => message.role === "user").at(-1)?.content || "";
+  const previousAssistant = recentAssistant(messages);
+  const accepts = /\b(ok|okay|yes|yeah|yep|sure|book it|take it|give me that|that works|that time|use that)\b/i.test(latestUser) && !/\?/.test(latestUser);
+  if (!accepts || !/\b(soonest|available slot|opening is)\b/i.test(previousAssistant)) return null;
+  return {
+    date: parseDate(previousAssistant),
+    time: parseTime(previousAssistant)
+  };
+}
+
 function conversationDate(messages: Array<{ role?: string; content?: string }>) {
-  return latestClientValue(messages, parseDate);
+  const latestUser = messages.filter((message) => message.role === "user").at(-1)?.content || "";
+  const explicit = parseDate(latestUser);
+  if (explicit) return explicit;
+  return acceptedSuggestedSlot(messages)?.date || latestClientValue(messages, parseDate);
 }
 
 function conversationTime(messages: Array<{ role?: string; content?: string }>) {
-  return latestClientValue(messages, parseTime);
+  const latestUser = messages.filter((message) => message.role === "user").at(-1)?.content || "";
+  const explicit = parseTime(latestUser);
+  if (explicit) return explicit;
+  return acceptedSuggestedSlot(messages)?.time || latestClientValue(messages, parseTime);
 }
 
 function conversationService(messages: Array<{ role?: string; content?: string }>) {
