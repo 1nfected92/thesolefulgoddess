@@ -171,8 +171,12 @@ input::placeholder,textarea::placeholder { color:var(--muted); opacity:1; }
 .chat-top button { background:none; border:0; color:#fff; font-size:24px; min-width:36px; min-height:36px; }
 .chat-body { padding:14px; max-height:240px; overflow:auto; }
 .chat-body p { background:var(--soft); padding:10px; border-radius:8px; font-size:12px; margin-bottom:8px; }
+.chat-body p.user { background:var(--navy); color:#fff; text-align:right; }
 .chat-options { display:flex; gap:6px; flex-wrap:wrap; padding:12px; border-top:1px solid var(--line); }
 .chat-options button { font-size:11px; min-height:36px; padding:6px 9px; border-radius:5px; background:none; border:1px solid var(--line); color:var(--ink); }
+.chat-form { display:flex; gap:8px; padding:12px; border-top:1px solid var(--line); background:var(--paper); }
+.chat-form input { min-width:0; flex:1; min-height:38px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); padding:8px 10px; font-size:14px; }
+.chat-form .button { min-height:38px; padding:8px 12px; font-size:11px; }
 .lightbox { display:none; position:fixed; inset:0; z-index:50; background:rgba(3,10,20,.95); align-items:center; justify-content:center; padding:25px; }
 .lightbox.open { display:flex; }
 .lightbox img { max-width:90vw; max-height:86vh; max-height:86dvh; object-fit:contain; border-radius:8px; }
