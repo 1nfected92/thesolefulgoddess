@@ -96,8 +96,9 @@ function serviceName(value: string) {
 }
 
 function isOffTopic(value: string) {
+  const unrelated = /\b(weather|forecast|sports|news|politics|recipe|movie|music|anime|crypto|stock|stocks|joke)\b/.test(value);
   const spaWords = ["massage", "spa", "reflex", "thai", "sport", "body", "book", "appointment", "available", "slot", "price", "cost", "hour", "location", "address", "carrollton", "relax", "contact", "prepare", "policy", "cancel", "reschedule", "name", "email", "date", "time", "today", "tomorrow"];
-  return value.length > 2 && !spaWords.some((word) => value.includes(word)) && !/^(hi|hello|hey|thanks|thank you|help)\b/.test(value);
+  return unrelated || (value.length > 2 && !spaWords.some((word) => value.includes(word)) && !/^(hi|hello|hey|thanks|thank you|help)\b/.test(value));
 }
 
 async function services() {
