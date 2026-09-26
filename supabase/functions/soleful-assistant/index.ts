@@ -310,8 +310,19 @@ async function handle(messages: Array<{ role?: string; content?: string }>) {
       return "I can help arrange that. Which treatment would you like: Thai Massage, Reflexology, Sports Massage, or Full Body Massage?";
     }
     if (!date) return service.name + " is a good choice. What date would you like to visit?";
+    const changedDate = parseDate(latest);
+    if (changedDate && time) {
+      const liveOpenings = await slots(date, date);
+      const timeStillOpen = liveOpenings.some((opening) => opening.appointment_time.slice(0, 5) === time);
+      if (!timeStillOpen) {
+        return liveOpenings.length
+          ? "I’ve updated the request to " + date + ", but the previously selected time is not available there. The live openings are:\n" + liveOpenings.map(slotLabel).join("\n") + "\nWhich time would you prefer?"
+          : "I’ve updated the request to " + date + ", but there are no remaining openings on that date. Which other date would work?";
+      }
+      if (!name) return "I’ve updated the request to " + date + ". The selected time is still open. What name should I put on the appointment request?";
+      if (!email) return "I’ve updated the request to " + date + ". The selected time is still open. What email should the spa use for confirmation?";
+    }
     if (!time) {
-      const changedDate = parseDate(latest);
       const dateLabel = /\btoday\b/.test(latest) ? "today" : /\btomorrow\b/.test(latest) ? "tomorrow" : date;
       const liveOpenings = await slots(date, date);
       if (!liveOpenings.length) {
