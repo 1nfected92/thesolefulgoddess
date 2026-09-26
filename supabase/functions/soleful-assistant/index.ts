@@ -176,7 +176,9 @@ async function handle(messages: Array<{ role?: string; content?: string }>) {
     const greeting = latest.includes("morning") ? "Good morning" : latest.includes("afternoon") ? "Good afternoon" : latest.includes("evening") ? "Good evening" : "Hi";
     return greeting + ". Welcome to The Soleful Goddess. What would feel best today: learning about a treatment, finding an opening, or starting an appointment request?";
   }
-  if (isOffTopic(latest)) {
+  const previousAssistant = recentAssistant(messages).toLowerCase();
+  const isConversationReply = bookingIntent || /\b(name|email|phone|date|time|treatment|massage|appointment|which)\b/.test(previousAssistant);
+  if (isOffTopic(latest) && !isConversationReply) {
     return "I’m here specifically for The Soleful Goddess. I can help with our massages, pricing, preparation, location, availability, and appointment requests.";
   }
 
@@ -225,7 +227,8 @@ async function handle(messages: Array<{ role?: string; content?: string }>) {
 
   if (bookingIntent) {
     const service = list.find((s) => s.name === selectedService);
-    const name = parseName(all);
+    const bareName = /^[A-Za-z][A-Za-z .'-]{1,60}$/.test(latestRaw.trim()) ? latestRaw.trim() : null;
+    const name = parseName(all) || (/\bwhat name\b|\bname should\b/.test(previousAssistant) ? bareName : null);
     const email = parseEmail(all);
     const phone = parsePhone(all);
     const time = parseTime(all);
