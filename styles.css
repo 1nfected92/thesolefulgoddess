@@ -318,3 +318,58 @@ input::placeholder,textarea::placeholder { color:var(--muted); opacity:1; }
 @media(max-width:520px){.service-grid{grid-template-columns:1fr}.card h3{margin-top:12px}.card p{margin-bottom:16px}.card-bottom strong{font-size:26px}}
 .empty-reviews{max-width:720px;margin:0 auto;padding:52px 34px;text-align:center;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow)}
 .empty-reviews h2{font:600 clamp(28px,4vw,44px)/1.1 var(--serif);margin:0 0 14px}.empty-reviews p:last-child{color:var(--muted)}
+
+/* Animated navy, gold, and feminine accent background. */
+body {
+  position:relative;
+  isolation:isolate;
+  background:
+    radial-gradient(circle at 8% 12%, rgba(245,190,196,.24), transparent 24%),
+    radial-gradient(circle at 92% 18%, rgba(216,182,106,.2), transparent 26%),
+    radial-gradient(circle at 78% 86%, rgba(205,186,235,.2), transparent 24%),
+    var(--paper);
+}
+body::before,body::after {
+  content:'';
+  position:fixed;
+  z-index:-1;
+  pointer-events:none;
+  border-radius:50%;
+  filter:blur(2px);
+  opacity:.72;
+  mix-blend-mode:multiply;
+}
+body::before {
+  width:min(52vw,620px);
+  height:min(52vw,620px);
+  top:11vh;
+  right:-14vw;
+  background:
+    radial-gradient(circle at 35% 35%, rgba(240,220,166,.8) 0 4%, transparent 5%),
+    radial-gradient(circle at 65% 60%, rgba(246,190,196,.52) 0 13%, transparent 14%),
+    radial-gradient(circle at 45% 55%, rgba(11,29,54,.22) 0 30%, transparent 31%);
+  animation:golden-orbit 18s ease-in-out infinite alternate;
+}
+body::after {
+  width:min(46vw,520px);
+  height:min(46vw,520px);
+  bottom:5vh;
+  left:-15vw;
+  background:
+    radial-gradient(circle at 58% 44%, rgba(216,182,106,.56) 0 9%, transparent 10%),
+    radial-gradient(circle at 42% 62%, rgba(205,186,235,.48) 0 18%, transparent 19%),
+    radial-gradient(circle at 60% 48%, rgba(11,29,54,.18) 0 38%, transparent 39%);
+  animation:navy-drift 22s ease-in-out infinite alternate;
+}
+@keyframes golden-orbit {
+  from { transform:translate3d(-4vw,-2vh,0) rotate(0deg) scale(.96); }
+  to { transform:translate3d(2vw,5vh,0) rotate(18deg) scale(1.08); }
+}
+@keyframes navy-drift {
+  from { transform:translate3d(3vw,2vh,0) rotate(0deg) scale(1); }
+  to { transform:translate3d(-2vw,-4vh,0) rotate(-16deg) scale(1.1); }
+}
+@media (prefers-reduced-motion:reduce) {
+  body::before,body::after { animation:none; }
+}
+.dark body::before,.dark body::after { mix-blend-mode:screen; opacity:.42; }
