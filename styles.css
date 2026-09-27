@@ -372,4 +372,4 @@ body::after {
 @media (prefers-reduced-motion:reduce) {
   body::before,body::after { animation:none; }
 }
-.dark body::before,.dark body::after { mix-blend-mode:screen; opacity:.42; }
+body.dark::before,body.dark::after { mix-blend-mode:screen; opacity:.42; }
