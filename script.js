@@ -19,3 +19,14 @@ function spaFallback(text){
 }
 let galleryTrigger;function closeLightbox(){$('.lightbox')?.classList.remove('open');galleryTrigger?.focus()};$$('.gallery button').forEach(b=>b.addEventListener('click',()=>{galleryTrigger=b;$('.lightbox img').src=b.dataset.image;$('.lightbox img').alt=b.querySelector('img').alt;$('.lightbox').classList.add('open');$('.lightbox-close').focus()}));$('.lightbox-close')?.addEventListener('click',closeLightbox);
 if('IntersectionObserver'in window){const o=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');o.unobserve(e.target)}}),{threshold:.08});$$('.card,.split,.review-card,.band-grid,.contact-grid').forEach(e=>{e.classList.add('reveal');o.observe(e)})}
+
+document.addEventListener('click',e=>{
+  const target=e.target.closest('button,.button,.nav-links a,.slot,.calendar-day');
+  if(!target||target.disabled||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const rect=target.getBoundingClientRect(),r=document.createElement('span');
+  r.className='ripple';
+  r.style.left=(e.clientX-rect.left)+'px';
+  r.style.top=(e.clientY-rect.top)+'px';
+  target.append(r);
+  setTimeout(()=>r.remove(),650);
+});
