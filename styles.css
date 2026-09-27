@@ -115,7 +115,7 @@ input::placeholder,textarea::placeholder { color:var(--muted); opacity:1; }
 .availability-1 { --availability-bg:#fbe6d2; --availability-ink:#80400c; --availability-border:#dea36d; --availability-dot:#dc8740; }
 .availability-2 { --availability-bg:#f4e5bc; --availability-ink:#715213; --availability-border:#c6a152; --availability-dot:#b88b23; }
 .availability-3 { --availability-bg:#f8f0c4; --availability-ink:#66590b; --availability-border:#c9bc65; --availability-dot:#dec84a; }
-.availability-4 { --availability-bg:#def0e3; --availability-ink:#205d39; --availability-border:#87b49a; --availability-dot:#499c6d; }
+.availability-4,.availability-5,.availability-6,.availability-7 { --availability-bg:#def0e3; --availability-ink:#205d39; --availability-border:#87b49a; --availability-dot:#499c6d; }
 .calendar-day.selected { outline:2px solid var(--accent); outline-offset:2px; box-shadow:inset 0 0 0 2px var(--paper); }
 .calendar-day:disabled { opacity:.58; }
 .calendar-day.availability-0:disabled { opacity:.85; }
