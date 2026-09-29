@@ -1,3 +1,4 @@
+(function(){
 'use strict';
 const cfg=window.SOLEFUL_SUPABASE||{url:'https://aqxuzjnlfjfcvjdlrheu.supabase.co',publishableKey:'sb_publishable_-n4F3QGvUELj94RKcEzVVg__eho0yX5'};
 const ownerEmail='mcastro@thesolefulgoddess.com';
@@ -106,3 +107,4 @@ $('galleryUpload').onchange=function(e){var f=e.target.files[0];if(!f)return;sta
 $('homeForm').onsubmit=function(e){e.preventDefault();var f=$('heroUpload').files[0],p={id:1,headline:$('homeHeadline').value.trim(),subtitle:$('homeSubtitle').value.trim(),cta_label:$('homeCta').value.trim(),updated_at:new Date().toISOString()};var work=Promise.resolve();if(f){var path='homepage/'+crypto.randomUUID()+'-'+f.name.replace(/[^a-z0-9._-]/gi,'-');work=sb.storage.from('site-media').upload(path,f,{contentType:f.type}).then(function(r){if(r.error)throw r.error;p.hero_image_path=path;p.hero_image_url=sb.storage.from('site-media').getPublicUrl(path).data.publicUrl})}work.then(function(){return sb.from('site_settings').upsert(p)}).then(function(r){if(r.error)status('homeStatus',r.error.message);else status('homeStatus','Homepage settings saved.',true)}).catch(function(e){status('homeStatus',e.message)})};
 $('saveHours').onclick=function(){var rows=[...document.querySelectorAll('.hours-row')];var chain=Promise.resolve();rows.forEach(function(row){chain=chain.then(function(){var get=function(k){return row.querySelector('[data-key="'+k+'"]')},open=get('is_open').checked;return sb.from('business_hours').update({is_open:open,open_time:open?get('open_time').value:null,close_time:open?get('close_time').value:null,slot_interval_minutes:Number(get('slot_interval_minutes').value),updated_at:new Date().toISOString()}).eq('weekday',row.dataset.weekday).then(function(r){if(r.error)throw r.error})})});chain.then(function(){status('hoursStatus','Business hours saved. Live booking availability is updated.',true)}).catch(function(e){status('hoursStatus',e.message)})};
 boot();
+})();
