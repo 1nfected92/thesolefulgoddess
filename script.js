@@ -30,3 +30,14 @@ document.addEventListener('click',e=>{
   target.append(r);
   setTimeout(()=>r.remove(),650);
 });
+
+/* Owner dashboard compatibility client: keeps login working if the external SDK is delayed. */
+if(!window.SOLEFUL_SUPABASE)window.SOLEFUL_SUPABASE={url:'https://aqxuzjnlfjfcvjdlrheu.supabase.co',publishableKey:'sb_publishable_-n4F3QGvUELj94RKcEzVVg__eho0yX5'};
+if(!window.supabase){
+  window.supabase={createClient:function(base,key){
+    var token=localStorage.getItem('soleful-owner-access')||key;
+    function req(path,opt){opt=opt||{};var h=Object.assign({apikey:key,Authorization:'Bearer '+token},opt.headers||{});if(opt.body&&!(opt.body instanceof File))h['Content-Type']='application/json';return fetch(base+path,Object.assign({},opt,{headers:h})).then(async function(r){var t=await r.text(),d=t?JSON.parse(t):null;if(!r.ok)throw new Error((d&&d.message)||(d&&d.error_description)||t||('HTTP '+r.status));return d})}
+    function chain(table){var method='GET',body=null,params=[];var x={select:function(v){params.push('select='+encodeURIComponent(v));return x},order:function(c,o){params.push('order='+encodeURIComponent(c)+'.'+(o&&o.ascending===false?'desc':'asc'));return x},eq:function(c,v){params.push(encodeURIComponent(c)+'=eq.'+encodeURIComponent(v));return x},single:function(){params.push('limit=1');x.one=true;return x},maybeSingle:function(){params.push('limit=1');x.maybe=true;return x},insert:function(v){method='POST';body=v;return x},update:function(v){method='PATCH';body=v;return x},delete:function(){method='DELETE';return x},then:function(resolve,reject){return req('/rest/v1/'+table+'?'+params.join('&'),{method:method,body:body?JSON.stringify(body):undefined,headers:{Prefer:'return=representation'}}).then(function(d){return {data:x.one?(d[0]||null):(x.maybe?(d[0]||null):d),error:null}}).catch(function(e){return {data:null,error:e}}).then(resolve,reject)}};return x}
+    return {from:chain,auth:{getSession:function(){var raw=localStorage.getItem('soleful-owner-session');return Promise.resolve({data:{session:raw?JSON.parse(raw):null},error:null})},signInWithPassword:function(v){return req('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify(v)}).then(function(s){token=s.access_token;localStorage.setItem('soleful-owner-access',s.access_token);localStorage.setItem('soleful-owner-session',JSON.stringify(s));return {data:{session:s,user:s.user},error:null}}).catch(function(e){return {data:{},error:e}})},signOut:function(){localStorage.removeItem('soleful-owner-access');localStorage.removeItem('soleful-owner-session');return Promise.resolve({error:null})}},storage:{from:function(bucket){return {getPublicUrl:function(path){return {data:{publicUrl:base+'/storage/v1/object/public/'+bucket+'/'+path}}}}}}};
+  }};
+}
