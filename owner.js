@@ -1,5 +1,5 @@
 'use strict';
-const cfg=window.SOLEFUL_SUPABASE, sb=supabase.createClient(cfg.url,cfg.publishableKey), $=function(id){return document.getElementById(id)}; var appointments=[],services=[],gallery=[],hours=[];
+const cfg=window.SOLEFUL_SUPABASE||{url:'https://aqxuzjnlfjfcvjdlrheu.supabase.co',publishableKey:'sb_publishable_-n4F3QGvUELj94RKcEzVVg__eho0yX5'}, sb=(window.supabase||window.supabaseJs).createClient(cfg.url,cfg.publishableKey), $=function(id){return document.getElementById(id)}; var appointments=[],services=[],gallery=[],hours=[];
 const ownerEmail='mcastro@thesolefulgoddess.com';
 function esc(x){return String(x==null?'':x).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function dateLabel(d){return new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'})}
