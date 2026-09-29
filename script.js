@@ -41,3 +41,19 @@ if(!window.supabase){
     return {from:chain,auth:{getSession:function(){var raw=localStorage.getItem('soleful-owner-session');return Promise.resolve({data:{session:raw?JSON.parse(raw):null},error:null})},signInWithPassword:function(v){return req('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify(v)}).then(function(s){token=s.access_token;localStorage.setItem('soleful-owner-access',s.access_token);localStorage.setItem('soleful-owner-session',JSON.stringify(s));return {data:{session:s,user:s.user},error:null}}).catch(function(e){return {data:{},error:e}})},signOut:function(){localStorage.removeItem('soleful-owner-access');localStorage.removeItem('soleful-owner-session');return Promise.resolve({error:null})}},storage:{from:function(bucket){return {getPublicUrl:function(path){return {data:{publicUrl:base+'/storage/v1/object/public/'+bucket+'/'+path}}}}}}};
   }};
 }
+
+/* Resilient owner sign-in fallback. */
+(function(){
+  var form=document.getElementById('loginForm');
+  if(!form)return;
+  form.addEventListener('submit',function(ev){
+    ev.preventDefault();
+    var id=document.getElementById('loginId'),pw=document.getElementById('loginPassword'),msg=document.getElementById('authStatus');
+    var email=(id.value||'').trim().toLowerCase()==='mcastro'?'mcastro@thesolefulgoddess.com':(id.value||'').trim();
+    if(msg){msg.textContent='Signing in…';msg.className='success';}
+    fetch('https://aqxuzjnlfjfcvjdlrheu.supabase.co/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:'sb_publishable_-n4F3QGvUELj94RKcEzVVg__eho0yX5','Content-Type':'application/json'},body:JSON.stringify({email:email,password:pw.value})})
+      .then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.error_description||d.message||'Sign-in failed');return d})})
+      .then(function(session){localStorage.setItem('soleful-owner-access',session.access_token);localStorage.setItem('soleful-owner-session',JSON.stringify(session));var s=document.createElement('script');s.src='owner.js?v=4&fresh='+Date.now();document.body.appendChild(s);})
+      .catch(function(e){if(msg){msg.textContent=e.message||'Sign-in failed. Check the owner credentials.';msg.className='error';}});
+  });
+})();
