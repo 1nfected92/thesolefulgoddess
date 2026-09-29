@@ -53,7 +53,7 @@ if(!window.supabase){
     if(msg){msg.textContent='Signing in…';msg.className='success';}
     fetch('https://aqxuzjnlfjfcvjdlrheu.supabase.co/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:'sb_publishable_-n4F3QGvUELj94RKcEzVVg__eho0yX5','Content-Type':'application/json'},body:JSON.stringify({email:email,password:pw.value})})
       .then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.error_description||d.message||'Sign-in failed');return d})})
-      .then(function(session){localStorage.setItem('soleful-owner-access',session.access_token);localStorage.setItem('soleful-owner-session',JSON.stringify(session));var s=document.createElement('script');s.src='owner.js?v=4&fresh='+Date.now();document.body.appendChild(s);})
+      .then(function(session){localStorage.setItem('soleful-owner-access',session.access_token);localStorage.setItem('soleful-owner-session',JSON.stringify(session));var s=document.createElement('script');s.src='owner.js?v=5&fresh='+Date.now();document.body.appendChild(s);})
       .catch(function(e){if(msg){msg.textContent=e.message||'Sign-in failed. Check the owner credentials.';msg.className='error';}});
   });
 })();
